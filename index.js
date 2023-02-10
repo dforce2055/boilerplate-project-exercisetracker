@@ -49,16 +49,17 @@ app.post('/api/users', async (req, res) => {
   }
 })
 
-
-
 app.post('/api/users/:_id/exercises', async (req, res) => {
   try {
-    const { id, description, duration, date } = req.body
+    const id = req.body[':_id']
+    const { description, duration, date } = req.body
 
-    if (!validExercise({ id, description, duration, date }))
+    const exercise = { id, description, duration, date }
+
+    if (!validExercise(exercise))
       throw new Error('invalid Exercise')
 
-    const result = await createAndSaveExercise(username)
+    const result = await createAndSaveExercise(exercise)
     res.json({
       result
     });
@@ -98,12 +99,14 @@ const createAndSaveUser = async (username) => {
 const createAndSaveExercise = async ({ id, description, duration, date }) => {
   try {
     const user = await getUserById(id)
+    const dateValidated = getValidDate(date)
+
     const newExercise = new Exercise({
-      username,
+      user,
       username: user.username,
       description,
       duration,
-      date: date ? date.toDateString() : new Date().toDateString()
+      date: dateValidated
     })
 
     return await newExercise.save()
@@ -122,6 +125,28 @@ const getUserByUsername = async (username) => {
 }
 const getUserById = async (id) => {
   return await User.findById(id)
+}
+
+const getValidDate = (dateString) => {
+  let dateValidated = undefined
+
+  if (isATimeStamp(dateString))
+    dateValidated = new Date(parseInt(dateString)).toDateString()
+  else
+    dateValidated = new Date(dateString).toDateString()
+
+  if (dateValidated == 'Invalid Date' || !dateString)
+    dateValidated = new Date().toDateString()
+
+  return dateValidated
+}
+
+const isATimeStamp = (dateString) => {
+  // valid dateString 
+  // '2015-02-01'
+  // '05 October 2011, GMT'
+  // else is timestamp '1451001600000'
+  return Boolean(Date.parse(dateString)) ? false : true
 }
 
 
