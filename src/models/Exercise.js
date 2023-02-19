@@ -3,7 +3,6 @@ let mongoose = require('mongoose')
 let exerciseSchema = new mongoose.Schema({
   username: {
     type: String,
-    unique: true,
     required: true
   },
   description: {

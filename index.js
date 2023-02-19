@@ -3,7 +3,7 @@ const app = express()
 const cors = require('cors')
 require('dotenv').config()
 
-const bodyParser = require("body-parser");
+const bodyParser = require("body-parser")
 const DB = require('./src/database.js')
 const User = require('./src/models/User.js')
 const Exercise = require('./src/models/Exercise.js')
@@ -14,15 +14,14 @@ app.use(bodyParser.json())
 app.use(express.static('public'))
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/views/index.html')
-});
+})
+
 
 app.get('/api/users', async (req, res) => {
   try {
     const { allUsers } = await getAllUsers()
 
-    res.json({
-      allUsers
-    })
+    res.json(allUsers)
   } catch (error) {
     res.json({
       error: error.message
@@ -49,9 +48,9 @@ app.post('/api/users', async (req, res) => {
   }
 })
 
-app.post('/api/users/:_id/exercises', async (req, res) => {
+app.post('/api/users/:id/exercises', async (req, res) => {
   try {
-    const id = req.body[':_id']
+    const id = req.body[':_id'] || req.params.id
     const { description, duration, date } = req.body
 
     const exercise = { id, description, duration, date }
@@ -59,13 +58,40 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
     if (!validExercise(exercise))
       throw new Error('invalid Exercise')
 
-    const result = await createAndSaveExercise(exercise)
+    const newExercise = await createAndSaveExercise(exercise)
     res.json({
-      result
-    });
+      username: newExercise.username,
+      description: newExercise.description,
+      duration: newExercise.duration,
+      date: newExercise.date,
+      _id: newExercise._id,
+    })
   } catch (error) {
     res.json({
-      error: 'invalid username or duplicated'
+      error: 'invalid Exercise'
+    })
+  }
+})
+
+app.get('/api/users/:id/logs', async (req, res) => {
+  try {
+    const { from, to, limit } = req.query
+    const { id } = req.params
+
+    const user = await getUserById(id)
+
+    if (!user)
+      throw new Error('invalid user')
+    
+    const logs = await getLogs({ user, from, to, limit })
+
+    res.json({
+      user,
+      logs
+    })
+  } catch (error) {
+    res.json({
+      error: error.message
     })
   }
 })
@@ -99,14 +125,14 @@ const createAndSaveUser = async (username) => {
 const createAndSaveExercise = async ({ id, description, duration, date }) => {
   try {
     const user = await getUserById(id)
-    const dateValidated = getValidDate(date)
+    const validatedDate = getValidDate(date).toDateString()
 
     const newExercise = new Exercise({
       user,
       username: user.username,
       description,
       duration,
-      date: dateValidated
+      date: validatedDate
     })
 
     return await newExercise.save()
@@ -128,17 +154,17 @@ const getUserById = async (id) => {
 }
 
 const getValidDate = (dateString) => {
-  let dateValidated = undefined
+  let validatedDate = undefined
 
   if (isATimeStamp(dateString))
-    dateValidated = new Date(parseInt(dateString)).toDateString()
+    validatedDate = new Date(parseInt(dateString))
   else
-    dateValidated = new Date(dateString).toDateString()
+    validatedDate = new Date(dateString)
 
-  if (dateValidated == 'Invalid Date' || !dateString)
-    dateValidated = new Date().toDateString()
+  if (validatedDate == 'Invalid Date' || !dateString)
+    validatedDate = new Date()
 
-  return dateValidated
+  return validatedDate
 }
 
 const isATimeStamp = (dateString) => {
@@ -149,6 +175,21 @@ const isATimeStamp = (dateString) => {
   return Boolean(Date.parse(dateString)) ? false : true
 }
 
+const getLogs = async ({ user, from, to, limit }) => {
+  const toValidated = getValidDate(to)
+  const fromValidated = getValidDate(from)
+
+  const logs = await Exercise.find({
+    user,
+    date: {
+      $gte: fromValidated,
+      $lte: toValidated
+    }
+  })
+    .limit(parseInt(limit || 100))
+
+  return logs
+}
 
 const listener = app.listen(process.env.PORT || 3000, () => {
   console.log('Your app is listening on port ' + listener.address().port)
