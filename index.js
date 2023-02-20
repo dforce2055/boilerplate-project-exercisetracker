@@ -176,16 +176,25 @@ const isATimeStamp = (dateString) => {
   return Boolean(Date.parse(dateString)) ? false : true
 }
 const getLogs = async ({ user, from, to, limit }) => {
-  const toValidated = getValidDate(to)
-  const fromValidated = getValidDate(from)
+  let toValidated = undefined
+  let fromValidated = undefined
+  const dateFilter = {}
+
+  if (to) {
+    toValidated = getValidDate(to)
+    dateFilter.$lte = toValidated
+  }
+  if (from) {
+    fromValidated = getValidDate(from)
+    dateFilter.$gte = fromValidated
+  }
 
   const filter = {
     user,
-    date: {
-      $gte: fromValidated,
-      $lte: toValidated
-    }
   }
+
+  if (dateFilter.$lte || dateFilter.$gte)
+    filter.date = dateFilter
 
   const logs = await Exercise.find(filter).limit(parseInt(limit || 100))
 
