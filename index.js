@@ -59,11 +59,12 @@ app.post('/api/users/:id/exercises', async (req, res) => {
       throw new Error('invalid Exercise')
 
     const newExercise = await createAndSaveExercise(exercise)
+
     res.json({
       username: newExercise.username,
       description: newExercise.description,
       duration: newExercise.duration,
-      date: new Date(newExercise.date).toDateString(),
+      date: getFormatedDate(newExercise.date),
       _id: newExercise._id,
     })
   } catch (error) {
@@ -118,7 +119,6 @@ const createAndSaveUser = async (username) => {
     throw error
   }
 }
-
 const createAndSaveExercise = async ({ id, description, duration, date }) => {
   try {
     const user = await getUserById(id)
@@ -129,7 +129,7 @@ const createAndSaveExercise = async ({ id, description, duration, date }) => {
       username: user.username,
       description,
       duration,
-      date: validatedDate.toISOString()
+      date: validatedDate
     })
 
     return await newExercise.save()
@@ -137,19 +137,24 @@ const createAndSaveExercise = async ({ id, description, duration, date }) => {
     throw error
   }
 }
-
 const getAllUsers = async () => {
   const allUsers = await User.find()
   return { allUsers }
 }
-
 const getUserByUsername = async (username) => {
   return await User.find({ username })
 }
 const getUserById = async (id) => {
   return await User.findById(id)
 }
-
+const getFormatedDate = (dateISOString) => {
+  if (!dateISOString || dateISOString.length < 10)
+    return new Date().toDateString()
+  
+  const dateString = dateISOString.toISOString().slice(0, 10)
+  const dateFormated = new Date(dateString + ' ') // this space is about crazy things in Date constructor
+  return dateFormated.toDateString() || new Date().toDateString()
+}
 const getValidDate = (dateString) => {
   let validatedDate = undefined
 
@@ -163,7 +168,6 @@ const getValidDate = (dateString) => {
 
   return validatedDate
 }
-
 const isATimeStamp = (dateString) => {
   // valid dateString 
   // '2015-02-01'
@@ -171,7 +175,6 @@ const isATimeStamp = (dateString) => {
   // else is timestamp '1451001600000'
   return Boolean(Date.parse(dateString)) ? false : true
 }
-
 const getLogs = async ({ user, from, to, limit }) => {
   const toValidated = getValidDate(to)
   const fromValidated = getValidDate(from)
