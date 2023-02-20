@@ -85,10 +85,7 @@ app.get('/api/users/:id/logs', async (req, res) => {
     
     const logs = await getLogs({ user, from, to, limit })
 
-    res.json({
-      user,
-      logs
-    })
+    res.json(logs)
   } catch (error) {
     res.json({
       error: error.message
@@ -188,7 +185,20 @@ const getLogs = async ({ user, from, to, limit }) => {
   })
     .limit(parseInt(limit || 100))
 
-  return logs
+  const logsFormated = logs.map(log => {
+    return {
+      description: log.description,
+      duration: log.duration,
+      date: log.date
+    }
+  })
+  
+  return {
+    username: user.username,
+    count: logs.length,
+    _id: user._id,
+    logs: logsFormated
+  }
 }
 
 const listener = app.listen(process.env.PORT || 3000, () => {
