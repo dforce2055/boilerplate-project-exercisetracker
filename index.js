@@ -197,7 +197,7 @@ const getLogs = async ({ user, from, to, limit }) => {
     username: user.username,
     count: logs.length,
     _id: user._id,
-    logs: logsFormated
+    log: logsFormated
   }
 }
 
