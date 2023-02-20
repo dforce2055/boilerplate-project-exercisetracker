@@ -63,7 +63,7 @@ app.post('/api/users/:id/exercises', async (req, res) => {
       username: newExercise.username,
       description: newExercise.description,
       duration: newExercise.duration,
-      date: newExercise.date,
+      date: new Date(newExercise.date).toDateString(),
       _id: newExercise._id,
     })
   } catch (error) {
@@ -122,14 +122,14 @@ const createAndSaveUser = async (username) => {
 const createAndSaveExercise = async ({ id, description, duration, date }) => {
   try {
     const user = await getUserById(id)
-    const validatedDate = getValidDate(date).toDateString()
+    const validatedDate = getValidDate(date)
 
     const newExercise = new Exercise({
       user,
       username: user.username,
       description,
       duration,
-      date: validatedDate
+      date: validatedDate.toISOString()
     })
 
     return await newExercise.save()
@@ -176,14 +176,15 @@ const getLogs = async ({ user, from, to, limit }) => {
   const toValidated = getValidDate(to)
   const fromValidated = getValidDate(from)
 
-  const logs = await Exercise.find({
+  const filter = {
     user,
     date: {
       $gte: fromValidated,
       $lte: toValidated
     }
-  })
-    .limit(parseInt(limit || 100))
+  }
+
+  const logs = await Exercise.find(filter).limit(parseInt(limit || 100))
 
   const logsFormated = logs.map(log => {
     return {
