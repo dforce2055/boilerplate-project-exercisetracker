@@ -61,11 +61,11 @@ app.post('/api/users/:id/exercises', async (req, res) => {
     const newExercise = await createAndSaveExercise(exercise)
 
     res.json({
-      username: newExercise.username,
-      description: newExercise.description,
-      duration: newExercise.duration,
-      date: getFormatedDate(newExercise.date),
       _id: newExercise._id,
+      username: newExercise.username,
+      date: getFormatedDate(newExercise.date),
+      duration: newExercise.duration,
+      description: newExercise.description,
     })
   } catch (error) {
     res.json({
@@ -202,7 +202,7 @@ const getLogs = async ({ user, from, to, limit }) => {
     return {
       description: log.description,
       duration: log.duration,
-      date: log.date
+      date: getFormatedDate(log.date)
     }
   })
   
